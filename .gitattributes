@@ -1,2 +1,6 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Normaliza finales de linea: LF en el repo, sea cual sea el SO.
+* text=auto eol=lf
+
+# Archivos binarios (no tocar)
+*.msi binary
+*.tgz binary

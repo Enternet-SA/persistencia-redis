@@ -1,0 +1,33 @@
+{
+  "name": "@andestec/persistencia-redis",
+  "version": "0.1.0",
+  "description": "Capa de persistencia sobre Redis: primitivas PersistenciaSet/Get/Check e interfaz tipo repositorio.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "redisClient.js",
+    "repositorioRedis.js",
+    "persistencia.js",
+    "persistence-store.js",
+    "repositorio.interface.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "demo:tipos": "node 01-tipos-datos.js",
+    "demo:persistencia": "node 02-persistencia.js",
+    "demo:store": "node 03-store-demo.js",
+    "demo:repositorio": "node 04-repositorio-demo.js",
+    "demo:primitivas": "node 05-persistencia-primitivas.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "redis": "^6.0.0"
+  },
+  "publishConfig": {
+    "access": "restricted"
+  }
+}

@@ -1,0 +1,16 @@
+# Dependencias
+node_modules/
+
+# Binario de instalacion de WSL (~250MB, NO versionar)
+*.msi
+
+# Paquetes generados por npm pack
+*.tgz
+
+# Variables de entorno y secretos
+.env
+.env.*
+
+# Logs
+*.log
+npm-debug.log*
