@@ -4,6 +4,14 @@
   "description": "Capa de persistencia sobre Redis: primitivas PersistenciaSet/Get/Check e interfaz tipo repositorio.",
   "main": "index.js",
   "types": "index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CristobalEfveliz/persistencia-redis.git"
+  },
+  "homepage": "https://github.com/CristobalEfveliz/persistencia-redis#readme",
+  "bugs": {
+    "url": "https://github.com/CristobalEfveliz/persistencia-redis/issues"
+  },
   "files": [
     "index.js",
     "index.d.ts",
