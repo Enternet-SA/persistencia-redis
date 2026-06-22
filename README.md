@@ -139,26 +139,131 @@ getConfiguracion(); // -> { destino: 'redis://10.0.0.5:6380/1', database: 1 }  (
 
 ### Primitivas
 
+Las tres primitivas replican una API de persistencia clásica. Todas reciben **primero el
+repositorio y luego la llave**, y son asíncronas (usar `await`).
+
 ```ts
-import { PersistenciaSet, PersistenciaGet, PersistenciaCheck } from '@andestec/persistencia-redis';
+import {
+  configurar,
+  PersistenciaSet,
+  PersistenciaGet,
+  PersistenciaCheck,
+} from '@andestec/persistencia-redis';
 
-// PersistenciaSet(repositorio, llave, valor)
-await PersistenciaSet('sii/recibidos', 'DTE-33-1001', '<DTE folio="1001">...</DTE>');
+configurar({ host: '127.0.0.1', port: 6379 }); // una sola vez, al arranque
+```
 
-// PersistenciaGet(repositorio, llave) -> valor | null
+#### `PersistenciaSet(repositorio, llave, valor)`
+
+Guarda un valor y registra su hora de modificación. Si la llave ya existía, la **sobrescribe**.
+
+| Parámetro | Tipo | Descripción |
+|-----------|------|-------------|
+| `repositorio` | `string` | contenedor lógico (prefijo de la clave) |
+| `llave` | `string` | identificador dentro del repositorio |
+| `valor` | `unknown` | cualquier dato serializable a JSON (texto, número, objeto, array) |
+
+**Devuelve** `Promise<boolean>` (`true` si se guardó).
+
+```ts
+await PersistenciaSet('sii/recibidos', 'DTE-33-1001', '<DTE folio="1001">...</DTE>'); // texto
+await PersistenciaSet('config', 'descarga', { dias: 30, carpeta: 'C:/DESCARGAS' });   // objeto
+await PersistenciaSet('contadores', 'folios', 1024);                                  // número
+```
+
+#### `PersistenciaGet(repositorio, llave)`
+
+Lee y deserializa un valor. Si la llave **no existe, devuelve `null`** (no lanza error).
+
+| Parámetro | Tipo | Descripción |
+|-----------|------|-------------|
+| `repositorio` | `string` | el repositorio donde buscar |
+| `llave` | `string` | la llave a leer |
+
+**Devuelve** `Promise<T | null>`. Acepta un genérico `<T>` para tipar el resultado.
+
+```ts
 await PersistenciaGet('sii/recibidos', 'DTE-33-1001'); // -> '<DTE folio="1001">...</DTE>'
 await PersistenciaGet('sii/recibidos', 'no-existe');   // -> null
 
-// PersistenciaCheck(repositorio, llave) -> { ok, ultimaModificacion }
-await PersistenciaCheck('sii/recibidos', 'DTE-33-1001'); // -> { ok: true,  ultimaModificacion: Date }
-await PersistenciaCheck('sii/recibidos', 'no-existe');   // -> { ok: false, ultimaModificacion: null }
+interface Config { dias: number; carpeta: string }
+const cfg = await PersistenciaGet<Config>('config', 'descarga'); // cfg: Config | null
+if (cfg) console.log(cfg.dias); // 30  (con autocompletado tipado)
 ```
 
-Tipado del valor leído:
+#### `PersistenciaCheck(repositorio, llave)`
+
+Comprueba si una llave existe y cuándo se modificó por última vez.
+
+| Parámetro | Tipo | Descripción |
+|-----------|------|-------------|
+| `repositorio` | `string` | el repositorio |
+| `llave` | `string` | la llave a comprobar |
+
+**Devuelve** `Promise<{ ok, ultimaModificacion }>`:
+
+| Campo | Tipo | Significado |
+|-------|------|-------------|
+| `ok` | `boolean` | `true` si la llave existe |
+| `ultimaModificacion` | `Date \| null` | fecha de la última escritura, o `null` si no existe |
 
 ```ts
-interface Dte { folio: number; monto: number }
-const dte = await PersistenciaGet<Dte>('sii/recibidos', '1001'); // dte: Dte | null
+const r = await PersistenciaCheck('sii/recibidos', 'DTE-33-1001');
+// -> { ok: true, ultimaModificacion: 2026-06-22T15:16:34.392Z }
+
+if (r.ok) {
+  console.log('Guardado el', r.ultimaModificacion!.toLocaleString());
+}
+
+await PersistenciaCheck('sii/recibidos', 'no-existe');
+// -> { ok: false, ultimaModificacion: null }
+```
+
+> La hora la registra `PersistenciaSet` con el reloj del servidor Redis. Solo las llaves
+> escritas con esta primitiva tienen `ultimaModificacion`; una guardada por otra vía
+> existirá (`ok: true`) pero con `ultimaModificacion: null`.
+
+#### Ejemplo completo
+
+Flujo típico: comprobar si ya existe, guardar, leer y verificar.
+
+```ts
+import {
+  configurar,
+  PersistenciaSet,
+  PersistenciaGet,
+  PersistenciaCheck,
+  closeClient,
+} from '@andestec/persistencia-redis';
+
+interface Dte { folio: number; monto: number; xml: string }
+
+async function main() {
+  configurar({ host: '127.0.0.1', port: 6379 });
+
+  const repo = 'sii/recibidos';
+  const llave = 'DTE-33-1001';
+
+  // 1) ¿Ya lo tenemos guardado?
+  const previo = await PersistenciaCheck(repo, llave);
+  if (previo.ok) {
+    console.log('Ya existía, modificado el', previo.ultimaModificacion);
+  }
+
+  // 2) Guardar (sobrescribe si existía)
+  await PersistenciaSet(repo, llave, { folio: 1001, monto: 52000, xml: '<DTE/>' });
+
+  // 3) Leer (tipado)
+  const dte = await PersistenciaGet<Dte>(repo, llave);
+  console.log('Monto:', dte?.monto); // -> 52000
+
+  // 4) Verificar
+  console.log(await PersistenciaCheck(repo, llave)); // { ok: true, ultimaModificacion: Date }
+
+  await closeClient(); // al terminar / apagar la app
+}
+
+main();
 ```
 
 ### Interfaz repositorio
