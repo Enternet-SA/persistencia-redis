@@ -85,6 +85,57 @@ import { closeClient } from '@andestec/persistencia-redis';
 await closeClient(); // al apagar la app
 ```
 
+## Uso con NestJS
+
+Importa el módulo desde el subpath `@andestec/persistencia-redis/nestjs`
+(`@nestjs/common` es una *peerDependency* opcional; solo se necesita si usas esta integración).
+
+```ts
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { PersistenciaModule } from '@andestec/persistencia-redis/nestjs';
+
+@Module({
+  imports: [
+    PersistenciaModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (cfg: ConfigService) => ({
+        host: cfg.get('REDIS_HOST'),
+        port: Number(cfg.get('REDIS_PORT')),
+        password: cfg.get('REDIS_PASSWORD'),
+      }),
+    }),
+    // o síncrono: PersistenciaModule.forRoot({ host: '127.0.0.1', port: 6379 }),
+  ],
+})
+export class AppModule {}
+```
+
+El módulo es **global**, así que `PersistenciaService` queda disponible en toda la app
+sin re-importar. Cierra la conexión solo al apagar (`onModuleDestroy`).
+
+```ts
+import { Injectable } from '@nestjs/common';
+import { PersistenciaService } from '@andestec/persistencia-redis/nestjs';
+
+@Injectable()
+export class FacturasService {
+  constructor(private readonly persistencia: PersistenciaService) {}
+
+  guardarDte(folio: string, xml: string) {
+    return this.persistencia.set('sii/recibidos', folio, xml); // (repositorio, llave, valor)
+  }
+
+  leerDte(folio: string) {
+    return this.persistencia.get('sii/recibidos', folio);
+  }
+}
+```
+
+`PersistenciaService` expone `set` / `get` / `check`, la propiedad `repositorio`
+(interfaz completa) y `crearStore(namespace)`.
+
 ## API
 
 | Símbolo | Firma |
