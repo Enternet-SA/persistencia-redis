@@ -2,8 +2,12 @@
   "name": "@andestec/persistencia-redis",
   "version": "0.1.0",
   "description": "Capa de persistencia sobre Redis: primitivas PersistenciaSet/Get/Check e interfaz tipo repositorio.",
-  "main": "index.js",
-  "types": "index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/CristobalEfveliz/persistencia-redis.git"
@@ -12,28 +16,23 @@
   "bugs": {
     "url": "https://github.com/CristobalEfveliz/persistencia-redis/issues"
   },
-  "files": [
-    "index.js",
-    "index.d.ts",
-    "redisClient.js",
-    "repositorioRedis.js",
-    "persistencia.js",
-    "persistence-store.js",
-    "repositorio.interface.ts",
-    "README.md"
-  ],
   "scripts": {
-    "demo:tipos": "node 01-tipos-datos.js",
-    "demo:persistencia": "node 02-persistencia.js",
-    "demo:store": "node 03-store-demo.js",
-    "demo:repositorio": "node 04-repositorio-demo.js",
-    "demo:primitivas": "node 05-persistencia-primitivas.js"
+    "build": "tsc -p tsconfig.build.json",
+    "test": "jest",
+    "prepare": "npm run build"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
     "redis": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.14.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.0",
+    "typescript": "^5.5.0"
   },
   "publishConfig": {
     "access": "restricted"

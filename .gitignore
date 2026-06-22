@@ -1,7 +1,14 @@
 # Dependencias
 node_modules/
 
-# Binario de instalacion de WSL (~250MB, NO versionar)
+# Compilado (se genera con npm run build)
+dist/
+*.tsbuildinfo
+
+# Cobertura de tests
+coverage/
+
+# Binarios de instalación (~250MB, NO versionar)
 *.msi
 
 # Paquetes generados por npm pack

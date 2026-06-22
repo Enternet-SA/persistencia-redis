@@ -1,89 +1,119 @@
-# POC Redis en JavaScript — Persistencia en memoria
+# @andestec/persistencia-redis
 
-Prueba de concepto para entender **qué ofrece Redis** y cómo funcionan sus
-mecanismos de persistencia, con un módulo exportable listo para integrar en una API.
+Capa de persistencia sobre **Redis** para proyectos Node/TypeScript. Expone:
 
-## ¿Qué es Redis?
+- **Primitivas** `PersistenciaSet` / `PersistenciaGet` / `PersistenciaCheck` (misma forma que la API de persistencia basada en archivos).
+- **Interfaz `repositorio`** (`obtener` / `guardar` / `eliminar` / `existe` / `listar`), donde el *repositorio* es un prefijo de la clave (equivalente a una carpeta).
+- **`RedisStore`**, repositorio con namespace fijo por instancia.
+- **Conexión configurable** por código o variables de entorno.
 
-Una base de datos **en memoria (RAM)** de tipo clave-valor, extremadamente rápida
-(microsegundos). Se usa como caché, cola de mensajes, contador, sesiones, rankings,
-rate-limiting, pub/sub, locks distribuidos, etc. Al vivir en RAM es volátil por
-naturaleza, por eso ofrece **persistencia a disco** para no perder datos al reiniciar.
-
-## Los modos de persistencia
-
-| Modo | Qué hace | Pro | Contra |
-|------|----------|-----|--------|
-| **RDB** (snapshots) | Guarda una "foto" del dataset cada cierto tiempo en `dump.rdb` | Compacto, arranque rápido, poco impacto | Puedes perder los datos entre dos snapshots |
-| **AOF** (append-only file) | Registra **cada comando de escritura** en `appendonly.aof` | Más durable (pérdida ~1s), reconstruible | Archivo más grande, recuperación más lenta |
-| **none** | Sin persistencia, solo RAM | Máxima velocidad | Se pierde todo al reiniciar (caché pura) |
-| **RDB + AOF** | Ambos a la vez (recomendado) | Durabilidad + arranque rápido | Algo más de disco/CPU |
-
-### Cómo se configuran (`redis.conf` o en caliente con `CONFIG SET`)
-
-- **RDB:** `save 3600 1 300 100 60 10000` → guarda si en 3600s hubo ≥1 cambio,
-  o en 300s ≥100, o en 60s ≥10000. `save ""` lo desactiva.
-- **AOF:** `appendonly yes` y `appendfsync everysec` (equilibrio durabilidad/rendimiento;
-  alternativas: `always` = máxima seguridad/lento, `no` = lo decide el SO).
-
-Disparo manual desde el cliente: `BGSAVE` (snapshot RDB en background),
-`BGREWRITEAOF` (compactar AOF), `LASTSAVE` (timestamp del último RDB).
-
-## Archivos de esta POC
-
-| Archivo | Para qué |
-|---------|----------|
-| `redisClient.js` | **Módulo exportable**: cliente Redis singleton con reconexión |
-| `persistence-store.js` | **Módulo exportable**: repositorio JSON + TTL + namespace (lo que usa tu API) |
-| `01-tipos-datos.js` | Recorrido por String, Hash, List, Set, Sorted Set, TTL |
-| `02-persistencia.js` | Inspecciona config, dispara RDB/AOF, prueba durabilidad |
-| `03-store-demo.js` | Demo del `RedisStore` con objetos reales |
-| `setup-wsl-redis.ps1` | Repara WSL en Windows (ejecutar como admin) |
-| `install-redis.sh` | Instala Redis dentro de Ubuntu/WSL |
-| `redis.conf` | Config de ejemplo comentada con opciones de persistencia |
-
-## Cómo correrlo
-
-### 1. Levantar Redis (vía WSL — pendiente de reiniciar)
-
-```powershell
-# PowerShell COMO ADMINISTRADOR:
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\setup-wsl-redis.ps1
-# -> REINICIAR el equipo
-# tras reiniciar, de nuevo como admin:
-wsl --update
-wsl --install -d Ubuntu
-```
-
-Dentro de Ubuntu:
-```bash
-bash install-redis.sh     # instala y arranca Redis en 127.0.0.1:6379
-redis-cli ping            # -> PONG
-```
-
-### 2. Correr la POC (desde Windows, en esta carpeta)
+## Instalación
 
 ```bash
-node 01-tipos-datos.js
-node 02-persistencia.js
-node 03-store-demo.js
+npm i git+https://github.com/CristobalEfveliz/persistencia-redis.git#v0.1.0
 ```
 
-> El cliente Node se conecta a `redis://127.0.0.1:6379`. Redis en WSL2 es
-> accesible desde Windows en esa misma dirección. Cambia con la variable de
-> entorno `REDIS_URL` si hace falta.
+> Se instala desde Git fijando el tag de versión. El paquete se **compila solo** al instalarse (script `prepare`), por lo que no se versiona `dist/`.
 
-### 3. Comprobar la durabilidad (la prueba clave)
+## Configuración de conexión
+
+Precedencia: `configurar()` > variables de entorno > valores por defecto (`127.0.0.1:6379`).
+
+```ts
+import { configurar } from '@andestec/persistencia-redis';
+
+configurar({
+  host: '10.0.0.5',
+  port: 6380,
+  password: 'secreto',
+  database: 1,
+});
+```
+
+Variables de entorno soportadas:
+
+| Variable | Descripción |
+|----------|-------------|
+| `REDIS_URL` | URL completa: `redis://[:pass@]host:puerto[/db]` (o `rediss://` para TLS) |
+| `REDIS_HOST`, `REDIS_PORT` | Host y puerto |
+| `REDIS_USERNAME`, `REDIS_PASSWORD` | Credenciales (ACL) |
+| `REDIS_DB` | Índice de base de datos |
+| `REDIS_TLS=true` | Activa TLS |
+
+`getConfiguracion()` devuelve el destino resuelto (con la contraseña enmascarada) para depurar.
+
+## Uso
+
+### Primitivas
+
+```ts
+import { PersistenciaSet, PersistenciaGet, PersistenciaCheck } from '@andestec/persistencia-redis';
+
+await PersistenciaSet('sii/recibidos', 'DTE-33-1001', '<DTE/>');
+await PersistenciaGet('sii/recibidos', 'DTE-33-1001');   // -> '<DTE/>'
+await PersistenciaCheck('sii/recibidos', 'DTE-33-1001'); // -> { ok: true, ultimaModificacion: Date }
+```
+
+> **Nota:** Redis no almacena una hora de modificación por clave; `PersistenciaSet`
+> la guarda dentro del valor (un "sobre") usando el reloj del servidor. Por eso solo
+> las claves escritas con `PersistenciaSet` tienen `ultimaModificacion`.
+
+### Interfaz repositorio
+
+```ts
+import { repositorio } from '@andestec/persistencia-redis';
+
+await repositorio.guardar('config', 'descargas', { dias: 30 }); // (llave, repositorio, valor)
+await repositorio.obtener('config', 'descargas');               // -> { dias: 30 }
+await repositorio.listar('descargas');                          // -> ['config']
+```
+
+### RedisStore
+
+```ts
+import { RedisStore } from '@andestec/persistencia-redis';
+
+const cache = new RedisStore({ namespace: 'sesiones' });
+await cache.set('user42', { rol: 'admin' }, 30); // TTL 30s
+await cache.get('user42');
+```
+
+### Cierre
+
+```ts
+import { closeClient } from '@andestec/persistencia-redis';
+await closeClient(); // al apagar la app
+```
+
+## API
+
+| Símbolo | Firma |
+|---------|-------|
+| `configurar(opciones)` | define la conexión |
+| `getConfiguracion()` | `{ destino, database }` |
+| `PersistenciaSet(repositorio, llave, valor)` | `Promise<boolean>` |
+| `PersistenciaGet(repositorio, llave)` | `Promise<T \| null>` |
+| `PersistenciaCheck(repositorio, llave)` | `Promise<{ ok, ultimaModificacion }>` |
+| `repositorio.*` | `obtener/guardar/eliminar/existe/listar/eliminarRepositorio` |
+| `RedisStore` | `set/get/del/has/ttl/keys` |
+| `getClient()` / `closeClient()` | acceso/cierre del cliente |
+
+## Desarrollo
 
 ```bash
-node 02-persistencia.js                      # escribe 1000 claves + BGSAVE
-# en Ubuntu:
-sudo service redis-server restart            # reinicia el server
-redis-cli get persist:test:500               # -> "valor-500" SOBREVIVE = persistió
+npm install        # instala dependencias y compila (prepare)
+npm run build      # compila src/ -> dist/
+npm test           # ejecuta los tests (requieren un Redis accesible)
 ```
 
-## Próximo paso bloqueado
+Los tests usan la base de datos **15** de Redis (`127.0.0.1:6379` por defecto; configurable con `REDIS_HOST`/`REDIS_PORT`). En `scripts/` hay ayudas para levantar Redis en Windows/WSL.
 
-WSL daba `REGDB_E_CLASSNOTREG`. Ejecuta `setup-wsl-redis.ps1` como administrador
-y reinicia. Después la POC corre tal cual.
+## Estructura
+
+```
+src/        código fuente TypeScript
+test/       pruebas Jest
+examples/   ejemplos de uso
+scripts/    helpers para levantar Redis (dev)
+dist/       salida compilada (generada)
+```
