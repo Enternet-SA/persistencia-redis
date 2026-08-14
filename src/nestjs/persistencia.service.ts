@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { PersistenciaSet, PersistenciaGet, PersistenciaCheck } from '../persistencia';
 import { repositorio as repositorioImpl } from '../repositorio';
 import { RedisStore } from '../store';
+import { getClient } from '../client';
+import { createTypedCache } from '../typed-cache';
+import type { CacheObserver, RedisCommands } from '../typed-cache';
 import type { IRepositorio, ResultadoCheck } from '../types';
 
 /**
@@ -10,6 +13,12 @@ import type { IRepositorio, ResultadoCheck } from '../types';
  */
 @Injectable()
 export class PersistenciaService {
+  private readonly commands: RedisCommands = {
+    get: async (key) => (await getClient()).get(key),
+    set: async (key, value, options) => (await getClient()).set(key, value, options),
+    del: async (key) => (await getClient()).del(key),
+  };
+
   /** Interfaz repositorio (obtener/guardar/eliminar/existe/listar/eliminarRepositorio). */
   readonly repositorio: IRepositorio = repositorioImpl;
 
@@ -31,5 +40,14 @@ export class PersistenciaService {
   /** Crea un repositorio con namespace fijo (RedisStore). */
   crearStore(namespace: string): RedisStore {
     return new RedisStore({ namespace });
+  }
+
+  /** Crea una caché aislada con claves versionadas y TTL obligatorio. */
+  crearCache(options: Readonly<{
+    namespace: string;
+    keyVersion?: string;
+    observe?: CacheObserver;
+  }>) {
+    return createTypedCache({ client: this.commands, ...options });
   }
 }

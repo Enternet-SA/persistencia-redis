@@ -1,6 +1,6 @@
 {
   "name": "@andestec/persistencia-redis",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Capa de persistencia sobre Redis: primitivas PersistenciaSet/Get/Check e interfaz tipo repositorio.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

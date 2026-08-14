@@ -16,6 +16,22 @@ export { repositorio } from './repositorio';
 // Repositorio con namespace fijo
 export { RedisStore } from './store';
 
+// Caché tipada v0.2: cliente inyectado, claves versionadas y TTL obligatorio.
+export { cacheKey, createTypedCache, seconds } from './typed-cache';
+export type {
+  CacheEntry,
+  CacheKey,
+  CacheObserver,
+  CacheOperation,
+  CacheOutcome,
+  CacheRead,
+  Codec,
+  DecodeResult,
+  RedisCommands,
+  Seconds,
+  TypedCache,
+} from './typed-cache';
+
 // Tipos públicos
 export type {
   OpcionesConexion,
