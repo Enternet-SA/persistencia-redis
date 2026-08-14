@@ -8,9 +8,6 @@ como reemplazo directo de una persistencia basada en archivos: trabajas con un
 
 Incluye:
 
-- **`TypedCache` (v0.2)** — caché tipada con cliente inyectable, claves por segmentos,
-  namespace/version, codecs con validación en runtime y TTL obligatorio.
-
 - **Primitivas** `PersistenciaSet` / `PersistenciaGet` / `PersistenciaCheck` — misma forma que una API de persistencia clásica (incluida la hora de última modificación).
 - **Interfaz `repositorio`** — `obtener` / `guardar` / `eliminar` / `existe` / `listar` / `eliminarRepositorio`.
 - **`RedisStore`** — repositorio con *namespace* fijo por instancia (ideal para caché).
@@ -135,44 +132,6 @@ getConfiguracion(); // -> { destino: 'redis://10.0.0.5:6380/1', database: 1 }  (
 ---
 
 ## Uso
-
-### TypedCache (v0.2)
-
-Esta es la interfaz recomendada para código nuevo. Oculta el formato físico y obliga
-a declarar vigencia y validación del dato:
-
-```ts
-import { cacheKey, createTypedCache, seconds } from '@andestec/persistencia-redis';
-
-const cache = createTypedCache({
-  client,
-  namespace: 'dispositivos',
-  keyVersion: 'v1',
-});
-
-const dispositivo = {
-  codec: {
-    encode: JSON.stringify,
-    decode: (raw: string) => {
-      const value: unknown = JSON.parse(raw);
-      return typeof value === 'object' && value !== null
-        ? { ok: true as const, value }
-        : { ok: false as const, reason: 'invalid-device' };
-    },
-  },
-};
-
-const key = cacheKey('977', 'qa', 'Disp01', 'operador');
-await cache.put(key, dispositivo, { id: 'Disp01' }, { ttl: seconds(300) });
-const result = await cache.get(key, dispositivo);
-```
-
-Cada segmento se escapa por separado, por lo que identidades como `['a:b', 'c']` y
-`['a', 'b:c']` no colisionan. La versión forma parte de la clave física. Un envelope
-o payload inválido produce `kind: 'invalid'` y se elimina de forma best-effort.
-
-En NestJS, `PersistenciaService.crearCache()` entrega la misma interfaz usando la
-conexión administrada y cerrada por `PersistenciaModule`.
 
 > ⚠️ **Orden de argumentos.** Las **primitivas** reciben `(repositorio, llave, ...)`.
 > La **interfaz `repositorio`** recibe `(llave, repositorio, ...)`. Es intencional para

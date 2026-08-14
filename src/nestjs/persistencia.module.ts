@@ -1,16 +1,13 @@
 import { DynamicModule, Global, Module, OnModuleDestroy } from '@nestjs/common';
-import type { InjectionToken, ModuleMetadata } from '@nestjs/common';
 import { configurar, closeClient } from '../client';
 import type { OpcionesConexion } from '../types';
 import { PersistenciaService } from './persistencia.service';
 
 /** Opciones para registrar el módulo de forma asíncrona (p. ej. con ConfigService). */
-export interface PersistenciaModuleAsyncOptions<
-  TDependencies extends readonly unknown[] = readonly unknown[],
-> {
-  imports?: ModuleMetadata['imports'];
-  inject?: { -readonly [Index in keyof TDependencies]: InjectionToken };
-  useFactory: (...args: TDependencies) => OpcionesConexion | Promise<OpcionesConexion>;
+export interface PersistenciaModuleAsyncOptions {
+  imports?: any[];
+  inject?: any[];
+  useFactory: (...args: any[]) => OpcionesConexion | Promise<OpcionesConexion>;
 }
 
 const TOKEN_OPCIONES = 'PERSISTENCIA_OPCIONES';
@@ -47,9 +44,7 @@ export class PersistenciaModule implements OnModuleDestroy {
   }
 
   /** Registro asíncrono: resuelve la configuración con una factory. */
-  static forRootAsync<TDependencies extends readonly unknown[]>(
-    options: PersistenciaModuleAsyncOptions<TDependencies>,
-  ): DynamicModule {
+  static forRootAsync(options: PersistenciaModuleAsyncOptions): DynamicModule {
     const proveedorOpciones = {
       provide: TOKEN_OPCIONES,
       useFactory: options.useFactory,
