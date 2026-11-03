@@ -20,16 +20,16 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CristobalEfveliz/persistencia-redis.git"
+    "url": "git+https://github.com/Enternet-SA/persistencia-redis.git"
   },
-  "homepage": "https://github.com/CristobalEfveliz/persistencia-redis#readme",
+  "homepage": "https://github.com/Enternet-SA/persistencia-redis#readme",
   "bugs": {
-    "url": "https://github.com/CristobalEfveliz/persistencia-redis/issues"
+    "url": "https://github.com/Enternet-SA/persistencia-redis/issues"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "jest",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "prepare": "npm run build"
   },
   "engines": {
@@ -39,7 +39,7 @@
     "redis": "^6.0.0"
   },
   "peerDependencies": {
-    "@nestjs/common": ">=9.0.0 <12.0.0"
+    "@nestjs/common": ">=9.0.0 <13.0.0"
   },
   "peerDependenciesMeta": {
     "@nestjs/common": {
@@ -47,17 +47,17 @@
     }
   },
   "devDependencies": {
-    "@nestjs/common": "^11.0.0",
-    "@nestjs/config": "^4.0.0",
-    "@nestjs/core": "^11.0.0",
-    "@nestjs/testing": "^11.0.0",
-    "@types/jest": "^29.5.12",
-    "@types/node": "^20.14.0",
-    "jest": "^29.7.0",
+    "@nestjs/common": "^12.2.0",
+    "@nestjs/config": "^12.0.1",
+    "@nestjs/core": "^12.2.0",
+    "@nestjs/testing": "^12.2.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.0.0",
+    "jest": "^30.2.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1",
-    "ts-jest": "^29.2.0",
-    "typescript": "^5.5.0"
+    "rxjs": "^7.8.2",
+    "ts-jest": "^29.4.15",
+    "typescript": "^6.0.3"
   },
   "publishConfig": {
     "access": "restricted"

@@ -38,7 +38,7 @@ Incluye:
 
 ## Requisitos
 
-- **Node.js** >= 18
+- **Node.js** >= 18 (la integración NestJS 12 requiere Node.js ^20.19 o >= 22.12)
 - Un servidor **Redis** accesible (Redis 6 o superior recomendado).
 
 ---
@@ -48,7 +48,7 @@ Incluye:
 Se instala desde GitHub fijando el **tag de versión**:
 
 ```bash
-npm i git+https://github.com/CristobalEfveliz/persistencia-redis.git#v0.1.0
+npm i git+https://github.com/Enternet-SA/persistencia-redis.git#v0.1.0
 ```
 
 > **Cómo funciona:** al instalarse, el script `prepare` compila TypeScript a `dist/`
@@ -335,7 +335,7 @@ await closeClient();
 ## Uso con NestJS
 
 Importa el módulo desde el subpath `@andestec/persistencia-redis/nestjs`. `@nestjs/common`
-es una **peerDependency opcional**: solo hace falta si usas esta integración.
+es una **peerDependency opcional** (NestJS 9 a 12): solo hace falta si usas esta integración.
 
 ### Registro del módulo
 
